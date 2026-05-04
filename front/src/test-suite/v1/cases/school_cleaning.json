@@ -1,0 +1,27 @@
+{
+  "id": "tc_school_cleaning",
+  "title": "大扫除制度",
+  "description": "一个高中每年轮换一个年级进行全校大扫除的制度是否合理",
+  "difficulty": "easy",
+  "prompt": "一个高中去年安排高一全校大扫除，今年安排高二全校大扫除，明年安排高三全校大扫除，这种制度是否合理？请做出判断。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "judgment": {
+        "type": "string",
+        "description": "合理性判断",
+        "enum": ["合理", "不合理"]
+      },
+      "reason": {
+        "type": "string",
+        "description": "判断理由"
+      }
+    },
+    "required": ["judgment"]
+  },
+  "verify": {
+    "arguments": {
+      "judgment": "不合理"
+    }
+  }
+}

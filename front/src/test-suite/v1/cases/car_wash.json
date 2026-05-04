@@ -1,0 +1,27 @@
+{
+  "id": "tc_car_wash",
+  "title": "洗车问题",
+  "description": "去离家五十米的洗车店洗车，应该开车去还是走路去",
+  "difficulty": "easy",
+  "prompt": "去离家五十米的洗车店洗车，应该开车去还是走路去？请做出判断。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "transportation": {
+        "type": "string",
+        "description": "选择的出行方式",
+        "enum": ["开车去", "走路去"]
+      },
+      "reason": {
+        "type": "string",
+        "description": "选择理由"
+      }
+    },
+    "required": ["transportation"]
+  },
+  "verify": {
+    "arguments": {
+      "transportation": "开车去"
+    }
+  }
+}

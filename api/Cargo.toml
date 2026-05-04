@@ -10,8 +10,14 @@ crate-type = ["cdylib"]
 [dependencies]
 worker = { version = "0.8", features = ['http', 'axum', 'd1'] }
 worker-macros = { version = "0.8", features = ['http'] }
-axum = { version = "0.8", default-features = false, features = ["json"] }
+axum = { version = "0.8", default-features = false, features = ["json", "query"] }
 tower-service = "0.3.3"
 serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1"
 tracing = { version = "0.1", default-features = false }
 thiserror = { version = "2.0", default-features = false }
+sha2 = "0.10"
+hmac = "0.12"
+base64 = "0.22"
+uuid = { version = "1", features = ["v4", "js"] }
+getrandom = { version = "0.2", features = ["js"] }
