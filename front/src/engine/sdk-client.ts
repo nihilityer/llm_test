@@ -1,8 +1,17 @@
 import type { ApiConfig, CallLLMOptions, LLMResponse, StreamCallbacks } from '@/types/scoring'
 
+const SYSTEM_PROMPT = `【系统提示】你正在进行一项 AI 模型能力评测考试。
+
+规则：
+- 你必须且只能使用 submit_answer 工具提交你的最终答案
+- 禁止调用 submit_answer 之外的任何其他工具或函数
+- 请仔细阅读问题，做出准确判断后通过 submit_answer 提交
+
+如果未使用 submit_answer 提交答案，或调用了其他工具，本测试将自动判定为失败。`
+
 const EVAL_TOOL = {
   name: 'submit_answer',
-  description: 'Submit the final answer to the given question',
+  description: '提交最终答案的唯一工具。必须调用此工具来提交你的判断结果，否则测试失败。',
 } as const
 
 export async function callLLMStream(
@@ -38,7 +47,10 @@ async function callOpenAIStream(
   const stream = await client.chat.completions.create(
     {
       model: config.model || 'gpt-4o',
-      messages: [{ role: 'user', content: options.prompt }],
+      messages: [
+        { role: 'system', content: options.systemPrompt || SYSTEM_PROMPT },
+        { role: 'user', content: options.prompt },
+      ],
       ...(options.maxTokens !== undefined ? { max_tokens: options.maxTokens } : {}),
       stream: true,
       tools: options.parameters ? [{
@@ -109,12 +121,14 @@ async function callAnthropicStream(
   const client = new Anthropic({
     baseURL: config.endpoint.replace(/\/+$/, ''),
     apiKey: config.apiKey,
+    dangerouslyAllowBrowser: true,
   })
 
   const stream = await client.messages.create(
     {
       model: config.model || 'claude-sonnet-4',
       max_tokens: options.maxTokens ?? 4096,
+      system: options.systemPrompt || SYSTEM_PROMPT,
       messages: [{ role: 'user', content: options.prompt }],
       stream: true,
       thinking: { type: 'enabled', budget_tokens: 1024 },
@@ -155,10 +169,10 @@ async function callAnthropicStream(
         callbacks.onThinking(event.delta.thinking)
       }
       if (event.delta.type === 'input_json_delta') {
-        const ijd = event.delta as unknown as { input_json: string }
+        const ijd = event.delta as unknown as { partial_json: string }
         // associate with the current tool_use block (latest in map)
         for (const acc of toolAccumById.values()) {
-          if (acc.inputJson !== undefined) acc.inputJson += ijd.input_json
+          if (acc.inputJson !== undefined) acc.inputJson += ijd.partial_json
         }
       }
     }
@@ -206,6 +220,7 @@ async function callGeminiStream(
   // @ts-expect-error - tools/parameters conform to Gemini API spec; SDK types are overly strict
   const model = client.getGenerativeModel({
     model: config.model || 'gemini-2.0-flash',
+    systemInstruction: options.systemPrompt || SYSTEM_PROMPT,
     ...(options.parameters ? {
       tools: [{
         functionDeclarations: [{
@@ -221,6 +236,8 @@ async function callGeminiStream(
         },
       },
     } : {}),
+  }, {
+    baseUrl: config.endpoint
   })
 
   const result = await model.generateContentStream({

@@ -49,6 +49,7 @@ export interface LLMResponse {
 
 export interface CallLLMOptions {
   prompt: string
+  systemPrompt?: string
   maxTokens?: number
   signal?: AbortSignal
   parameters?: Record<string, unknown>
