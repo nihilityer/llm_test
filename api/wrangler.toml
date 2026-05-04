@@ -1,0 +1,11 @@
+name = "code-llm-test-api"
+main = "build/index.js"
+compatibility_date = "2026-05-03"
+
+[build]
+command = "cargo install -q \"worker-build@^0.8\" && worker-build --release"
+
+[[d1_databases]]
+binding = "RANK_DATA"
+database_name = "rank-data"
+database_id = "5423ce15-ae23-4e82-94f5-2afdbe8e4280"

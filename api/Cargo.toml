@@ -1,0 +1,17 @@
+[package]
+name = "code-llm-test-api"
+version = "0.1.0"
+edition = "2021"
+authors = ["nihilityer <nihilityer@mail.nihilityer.top>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { version = "0.8", features = ['http', 'axum', 'd1'] }
+worker-macros = { version = "0.8", features = ['http'] }
+axum = { version = "0.8", default-features = false, features = ["json"] }
+tower-service = "0.3.3"
+serde = { version = "1.0.228", features = ["derive"] }
+tracing = { version = "0.1", default-features = false }
+thiserror = { version = "2.0", default-features = false }
