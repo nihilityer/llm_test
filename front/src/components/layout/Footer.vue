@@ -5,10 +5,10 @@ const year = new Date().getFullYear()
 <template>
   <footer class="footer">
     <div class="footer-inner">
-      <p class="footer-title">LLM编码跑分</p>
-      <p class="footer-desc">AI编码能力测试与排行系统</p>
+      <p class="footer-title">LLM跑分</p>
+      <p class="footer-desc">AI能力简单测试与排行系统</p>
       <p class="footer-disclaimer">测试结果仅供参考，不构成对任何AI服务的最终评价</p>
-      <p class="footer-copy">&copy; {{ year }} LLM编码跑分</p>
+      <p class="footer-copy">&copy; {{ year }} LLM跑分</p>
     </div>
   </footer>
 </template>

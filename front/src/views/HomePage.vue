@@ -20,8 +20,8 @@ function handleReset() {
   <div class="home-page">
     <!-- Hero -->
     <section class="hero">
-      <h1 class="hero-title">AI编码能力测试</h1>
-      <p class="hero-subtitle">输入 API 配置，快速测试 AI 编码能力</p>
+      <h1 class="hero-title">AI能力快速测试</h1>
+      <p class="hero-subtitle">输入 API 配置，快速测试 AI 能力</p>
     </section>
 
     <!-- Tab Navigation -->

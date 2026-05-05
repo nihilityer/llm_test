@@ -23,7 +23,7 @@ function navigate(path: string) {
   <nav class="navbar">
     <div class="navbar-inner">
       <!-- Logo -->
-      <a href="/" class="navbar-logo" @click.prevent="navigate('/')">LLM编码跑分</a>
+      <a href="/" class="navbar-logo" @click.prevent="navigate('/')">LLM跑分</a>
 
       <!-- Nav links - desktop -->
       <div class="navbar-links">

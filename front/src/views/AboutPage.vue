@@ -20,27 +20,20 @@
           <tbody>
             <tr>
               <td><strong>正确性</strong></td>
-              <td style="text-align: center">40</td>
-              <td>测试用例的通过率，直接反映代码功能是否正确实现</td>
+              <td style="text-align: center">75</td>
+              <td>测试用例的通过率，验证 AI 对常识推理和逻辑判断题的判断是否准确</td>
             </tr>
             <tr>
               <td><strong>运行效率</strong></td>
               <td style="text-align: center">25</td>
               <td>基于平均响应时间和 Token 使用量综合评估</td>
             </tr>
-            <tr>
-              <td><strong>代码风格</strong></td>
-              <td style="text-align: center">20</td>
-              <td>评估代码注释、命名规范、错误处理和结构组织</td>
-            </tr>
-            <tr>
-              <td><strong>工具使用</strong></td>
-              <td style="text-align: center">15</td>
-              <td>评估函数/类定义、模块导入、类型注解等编程抽象的使用</td>
-            </tr>
           </tbody>
         </table>
       </div>
+      <p class="text-sm text-secondary mt-4">
+        当前 v1 为判断力综合测试，后续版本将扩展更多维度（如代码风格、工具使用等）。
+      </p>
     </section>
 
     <!-- Calculation -->
@@ -49,13 +42,11 @@
       <div class="formula-block">
         <h3>维度得分</h3>
         <ul class="formula-list">
-          <li><strong>正确性</strong> = (通过用例数 / 总用例数) x 40</li>
+          <li><strong>正确性</strong> = (通过用例数 / 总用例数) × 75</li>
           <li><strong>运行效率</strong> = 响应时间评分(0-15) + Token效率评分(0-10)，上限25</li>
-          <li><strong>代码风格</strong> = 注释(0-5) + 命名(0-5) + 错误处理(0-5) + 结构(0-5)，上限20</li>
-          <li><strong>工具使用</strong> = 函数定义(0-6) + 模块导入(0-5) + 类型注解(0-4)，上限15</li>
         </ul>
         <h3 style="margin-top: 16px">总分</h3>
-        <p>总分 = 各维度得分之和，上限 100 分</p>
+        <p>总分 = 正确性 + 运行效率，上限 100 分</p>
       </div>
     </section>
 
@@ -118,9 +109,12 @@
           </thead>
           <tbody>
             <tr>
-              <td><span class="badge badge--info">v1</span></td>
+              <td><span class="badge badge--warn">v1</span></td>
               <td>2026-05</td>
-              <td>初始版本，包含 8 道编码测试题，覆盖算法、数据结构、异步编程、设计模式和代码重构</td>
+              <td>
+                判断力综合测试，包含 2 道常识推理与逻辑判断测试题（洗车问题、大扫除制度）。
+                <strong>当前测试用例仍在开发阶段</strong>，后续版本将扩展题目数量、难度和覆盖领域。
+              </td>
             </tr>
           </tbody>
         </table>
