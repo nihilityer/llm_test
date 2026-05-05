@@ -3,101 +3,31 @@ mod db;
 mod error;
 mod handlers;
 mod models;
+mod state;
 
-use crate::models::WeightConfig;
+pub use state::AppState;
+
 use axum::routing::{get, post};
 use axum::Router;
-use std::sync::Arc;
 use tower_service::Service;
 use worker::*;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub database: Arc<D1Database>,
-    pub env: Arc<Env>,
-    pub secrets: Arc<std::collections::HashMap<String, String>>,
-}
+const ALLOWED_ORIGINS: &[&str] = &[
+    "https://llmtest.top",
+    "https://www.llmtest.top",
+    "http://localhost:5173",
+];
 
-impl AppState {
-    fn new(env: &Env, database: D1Database) -> Result<Self> {
-        let mut secrets = std::collections::HashMap::new();
-
-        // Load secrets (set via `wrangler secret put`)
-        for key in &[
-            "JWT_SECRET",
-            "GITHUB_CLIENT_ID",
-            "GITHUB_CLIENT_SECRET",
-            "TURNSTILE_SECRET_KEY",
-        ] {
-            if let Ok(secret) = env.secret(key) {
-                secrets.insert(key.to_string(), secret.to_string());
-            }
-        }
-
-        Ok(Self {
-            database: Arc::new(database),
-            env: Arc::new(env.clone()),
-            secrets: Arc::new(secrets),
-        })
-    }
-
-    pub fn get_secret_or_var(&self, name: &str) -> Result<String> {
-        if let Some(val) = self.secrets.get(name) {
-            return Ok(val.clone());
-        }
-        if let Ok(var) = self.env.var(name) {
-            return Ok(var.to_string());
-        }
-        Err(Error::RustError(format!(
-            "Missing config: {}",
-            name
-        )))
-    }
-
-    pub fn get_weight_config(&self) -> WeightConfig {
-        let version_weights: serde_json::Value = self
-            .env
-            .var("VERSION_WEIGHTS")
-            .ok()
-            .map(|v| v.to_string())
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_else(|| serde_json::json!({"v1": 1.0}));
-
-        let oauth = self
-            .env
-            .var("SUBMITTER_WEIGHT_OAUTH")
-            .ok()
-            .map(|v| v.to_string())
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(1.0);
-
-        let anonymous = self
-            .env
-            .var("SUBMITTER_WEIGHT_ANONYMOUS")
-            .ok()
-            .map(|v| v.to_string())
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0.7);
-
-        let current_suite = self
-            .env
-            .var("CURRENT_TEST_SUITE")
-            .ok()
-            .map(|v| v.to_string())
-            .unwrap_or_else(|| "v1".to_string());
-
-        WeightConfig {
-            version_weights,
-            submitter_weight_oauth: oauth,
-            submitter_weight_anonymous: anonymous,
-            current_test_suite: current_suite,
-        }
-    }
+fn get_allowed_origin(origin: &str) -> Option<&'static str> {
+    ALLOWED_ORIGINS
+        .iter()
+        .find(|&&o| o == origin)
+        .copied()
 }
 
 fn router(env: Env) -> Result<Router> {
     let database = env.d1("RANK_DATA")?;
-    let app_state = AppState::new(&env, database)?;
+    let app_state = AppState::new(&env, database);
 
     Ok(Router::new()
         .route("/api/auth/github/login", get(handlers::github_login))
@@ -114,16 +44,34 @@ async fn fetch(
     env: Env,
     _ctx: Context,
 ) -> Result<axum::http::Response<axum::body::Body>> {
+    tracing::info!("Incoming request: {}", req.method().as_ref());
+
+    // Capture Origin before req is consumed by the router
+    let req_origin = req
+        .headers()
+        .get("Origin")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
     // CORS preflight
     if *req.method() == "OPTIONS" {
-        let cors_headers = Headers::new();
-        cors_headers.set("Access-Control-Allow-Origin", "*")?;
-        cors_headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")?;
-        cors_headers.set(
-            "Access-Control-Allow-Headers",
-            "Authorization, X-Anonymous-Token, Content-Type",
-        )?;
-        cors_headers.set("Access-Control-Max-Age", "86400")?;
+        tracing::debug!("CORS preflight, origin={}", req_origin);
+
+        if let Some(allowed) = get_allowed_origin(&req_origin) {
+            let resp = axum::http::Response::builder()
+                .status(204)
+                .header("Access-Control-Allow-Origin", allowed)
+                .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                .header(
+                    "Access-Control-Allow-Headers",
+                    "Authorization, X-Anonymous-Token, Content-Type",
+                )
+                .header("Access-Control-Max-Age", "86400")
+                .body(axum::body::Body::empty())
+                .map_err(|e| Error::RustError(format!("{}", e)))?;
+            return Ok(resp);
+        }
 
         let resp = axum::http::Response::builder()
             .status(204)
@@ -132,5 +80,15 @@ async fn fetch(
         return Ok(resp);
     }
 
-    Ok(router(env)?.call(req).await?)
+    let mut resp = router(env)?.call(req).await?;
+
+    // Add CORS header to actual responses
+    if let Some(allowed) = get_allowed_origin(&req_origin) {
+        resp.headers_mut().insert(
+            "Access-Control-Allow-Origin",
+            axum::http::HeaderValue::from_str(allowed).unwrap(),
+        );
+    }
+
+    Ok(resp)
 }

@@ -23,6 +23,7 @@ export interface GithubCallbackRequest {
 
 export interface SubmissionRequest {
   domain: string
+  model: string
   test_suite_version: string
   api_style: string
   endpoint_hash: string
@@ -35,6 +36,8 @@ export interface SubmissionResponse {
   id: string
   website_id: string
   website_name: string
+  model_id: string
+  model_name: string
 }
 
 export interface TestResultItem {
@@ -60,20 +63,26 @@ export interface RankingEntry {
   last_tested_at: string
 }
 
-export interface RankingsResponse {
-  rankings: RankingEntry[]
+export interface ModelRankingEntry {
+  rank: number
+  model_id: string
+  model_name: string
+  aliases: string[]
+  avg_score: number
+  submission_count: number
+  max_score: number
+  min_score: number
+  last_tested_at: string
+  website_count: number
+}
+
+export interface RankingsResponse<T = RankingEntry> {
+  rankings: T[]
   total: number
 }
 
-export interface RankingsQuery {
-  website_id?: string
-  search?: string
-  style?: string
-  limit?: number
-  offset?: number
-}
-
 export interface RankingsFilters {
+  rankingType?: 'website' | 'model'
   search?: string
   style?: string
   limit: number
@@ -87,6 +96,8 @@ export interface SubmissionDetail {
   submitter_type: string
   submitter_name: string | null
   submitter_avatar: string | null
+  model_id: string
+  model_name: string
   total_score: number
   dimension_scores: Record<string, number>
   test_suite_version: string
@@ -105,6 +116,22 @@ export interface WebsiteSummary {
   domains: string[]
   avg_score: number
   submission_count: number
+}
+
+// ---------- Model Detail ----------
+
+export interface ModelDetailResponse {
+  model: ModelSummary
+  submissions: SubmissionDetail[]
+}
+
+export interface ModelSummary {
+  id: string
+  name: string
+  aliases: string[]
+  avg_score: number
+  submission_count: number
+  website_count: number
 }
 
 // ---------- Shared ----------

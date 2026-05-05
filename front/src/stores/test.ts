@@ -240,6 +240,7 @@ export const useTestStore = defineStore('test', () => {
       submitResultData.value = await submitResult(
         {
           domain: domain.value,
+          model: apiConfig.value.model.trim(),
           test_suite_version: suiteV1.version,
           api_style: apiConfig.value.style,
           endpoint_hash: endpointHash,

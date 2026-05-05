@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import('@/views/AuthCallbackPage.vue'),
     },
     {
+      path: '/model/:id',
+      name: 'model-detail',
+      component: () => import('@/views/ModelDetailPage.vue'),
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('@/views/AboutPage.vue'),

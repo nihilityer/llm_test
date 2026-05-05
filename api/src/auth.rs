@@ -1,10 +1,12 @@
-use crate::error::ApiError;
+use crate::error::{ApiError, Result};
 use crate::models::JwtClaims;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
-use worker::*;
+use tracing::{error, warn};
+use worker::{Date, Fetch, Headers, Method, Request, RequestInit};
+use worker::wasm_bindgen::JsValue;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -15,7 +17,7 @@ pub fn sign_jwt(claims: &JwtClaims, secret: &str) -> Result<String> {
     let signing_input = format!("{}.{}", header_b64, payload_b64);
 
     let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-        .map_err(|_| Error::RustError("HMAC key creation failed".into()))?;
+        .map_err(|_| ApiError::internal("HMAC key creation failed"))?;
     mac.update(signing_input.as_bytes());
     let signature = URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes().as_slice());
 
@@ -25,7 +27,7 @@ pub fn sign_jwt(claims: &JwtClaims, secret: &str) -> Result<String> {
 pub fn verify_jwt(token: &str, secret: &str) -> Result<JwtClaims> {
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
-        return Err(Error::RustError("Invalid JWT format".into()));
+        return Err(ApiError::internal("Invalid JWT format"));
     }
 
     let header_b64 = parts[0];
@@ -36,27 +38,30 @@ pub fn verify_jwt(token: &str, secret: &str) -> Result<JwtClaims> {
 
     let signature = URL_SAFE_NO_PAD
         .decode(signature_b64.as_bytes())
-        .map_err(|e| Error::RustError(format!("Base64 decode error: {}", e)))?;
+        .map_err(|e| ApiError::internal(format!("Base64 decode error: {}", e)))?;
 
     let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-        .map_err(|_| Error::RustError("HMAC key creation failed".into()))?;
+        .map_err(|_| ApiError::internal("HMAC key creation failed"))?;
     mac.update(signing_input.as_bytes());
-    mac.verify_slice(&signature)
-        .map_err(|_| Error::RustError("JWT signature verification failed".into()))?;
+    mac.verify_slice(&signature).map_err(|_| {
+        warn!("JWT signature verification failed for sub");
+        ApiError::internal("JWT signature verification failed")
+    })?;
 
     let payload_json = URL_SAFE_NO_PAD
         .decode(payload_b64.as_bytes())
-        .map_err(|e| Error::RustError(format!("Base64 decode error: {}", e)))?;
+        .map_err(|e| ApiError::internal(format!("Base64 decode error: {}", e)))?;
     let payload_str = String::from_utf8(payload_json)
-        .map_err(|e| Error::RustError(format!("UTF-8 decode error: {}", e)))?;
+        .map_err(|e| ApiError::internal(format!("UTF-8 decode error: {}", e)))?;
 
     let claims: JwtClaims = serde_json::from_str(&payload_str)
-        .map_err(|e| Error::RustError(format!("JSON parse error: {}", e)))?;
+        .map_err(|e| ApiError::internal(format!("JSON parse error: {}", e)))?;
 
     // Check expiration
     let now_ms = Date::now().as_millis();
     if claims.exp * 1000 < now_ms {
-        return Err(Error::RustError("JWT expired".into()));
+        warn!("JWT expired for sub={}", claims.sub);
+        return Err(ApiError::internal("JWT expired"));
     }
 
     Ok(claims)
@@ -96,7 +101,8 @@ pub fn hash_ip(ip: &str) -> String {
     use sha2::Digest;
     let mut hasher = Sha256::new();
     hasher.update(ip.as_bytes());
-    format!("{:x}", hasher.finalize())
+    let result = hasher.finalize();
+    result.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
 fn make_headers(map: &[(&str, &str)]) -> Result<Headers> {
@@ -113,7 +119,7 @@ pub async fn exchange_github_code(
     code: &str,
     client_id: &str,
     client_secret: &str,
-) -> Result<(i64, String, Option<String>), ApiError> {
+) -> Result<(i64, String, Option<String>)> {
     // Step 1: Exchange code for access token
     let token_url = "https://github.com/login/oauth/access_token";
     let token_body = serde_json::json!({
@@ -128,7 +134,7 @@ pub async fn exchange_github_code(
         ("Accept", "application/json"),
         ("Content-Type", "application/json"),
     ])?;
-    init.body = Some(wasm_bindgen::JsValue::from_str(&token_body.to_string()));
+    init.body = Some(JsValue::from_str(&token_body.to_string()));
 
     let req = Request::new_with_init(token_url, &init)?;
     let mut resp = Fetch::Request(req).send().await?;
@@ -136,7 +142,10 @@ pub async fn exchange_github_code(
     let resp_json: serde_json::Value = resp.json().await?;
     let access_token = resp_json["access_token"]
         .as_str()
-        .ok_or_else(|| ApiError::OAuth("Failed to get access_token from GitHub".into()))?
+        .ok_or_else(|| {
+            error!("GitHub OAuth: failed to get access_token");
+            ApiError::OAuth("Failed to get access_token from GitHub".into())
+        })?
         .to_string();
 
     // Step 2: Fetch user info
@@ -164,7 +173,7 @@ pub async fn exchange_github_code(
 }
 
 /// Verify a Cloudflare Turnstile token.
-pub async fn verify_turnstile(token: &str, secret_key: &str) -> Result<bool, ApiError> {
+pub async fn verify_turnstile(token: &str, secret_key: &str) -> Result<bool> {
     let url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
     let body = serde_json::json!({
         "secret": secret_key,
@@ -174,11 +183,15 @@ pub async fn verify_turnstile(token: &str, secret_key: &str) -> Result<bool, Api
     let mut init = RequestInit::new();
     init.method = Method::Post;
     init.headers = make_headers(&[("Content-Type", "application/json")])?;
-    init.body = Some(wasm_bindgen::JsValue::from_str(&body.to_string()));
+    init.body = Some(JsValue::from_str(&body.to_string()));
 
     let req = Request::new_with_init(url, &init)?;
     let mut resp = Fetch::Request(req).send().await?;
 
     let resp_json: serde_json::Value = resp.json().await?;
-    Ok(resp_json["success"].as_bool().unwrap_or(false))
+    let success = resp_json["success"].as_bool().unwrap_or(false);
+    if !success {
+        warn!("Turnstile verification failed");
+    }
+    Ok(success)
 }

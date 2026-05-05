@@ -37,6 +37,7 @@ function styleLabel(style: string): string {
         <tr>
           <th style="width: 30px" />
           <th>提交者</th>
+          <th>模型</th>
           <th style="text-align: right">总分</th>
           <th>各维度</th>
           <th>风格</th>
@@ -48,7 +49,7 @@ function styleLabel(style: string): string {
         <!-- Loading -->
         <template v-if="loading">
           <tr v-for="i in 5" :key="'skel-' + i">
-            <td v-for="j in 7" :key="j">
+            <td v-for="j in 8" :key="j">
               <div class="skeleton skeleton--text" style="margin: 4px 0" />
             </td>
           </tr>
@@ -56,7 +57,7 @@ function styleLabel(style: string): string {
 
         <!-- Empty -->
         <tr v-else-if="submissions.length === 0">
-          <td colspan="7" style="text-align: center; padding: 48px 16px; color: var(--color-text-secondary)">
+          <td colspan="8" style="text-align: center; padding: 48px 16px; color: var(--color-text-secondary)">
             暂无提交记录
           </td>
         </tr>
@@ -84,6 +85,9 @@ function styleLabel(style: string): string {
                   {{ sub.submitter_type === 'oauth' ? 'OAuth' : '匿名' }}
                 </span>
               </div>
+            </td>
+            <td>
+              <span class="badge badge--primary">{{ sub.model_name }}</span>
             </td>
             <td style="text-align: right; font-weight: 600" class="text-mono">
               {{ formatScore(sub.total_score) }}
@@ -113,7 +117,7 @@ function styleLabel(style: string): string {
           </tr>
           <!-- Expanded dimension detail -->
           <tr v-if="expandedIds.has(sub.id)" class="expand-row">
-            <td colspan="7">
+            <td colspan="8">
               <div class="dimension-detail">
                 <h4>各维度得分</h4>
                 <div class="dimension-bars">

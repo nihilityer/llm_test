@@ -1,11 +1,27 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { RankingEntry, RankingsFilters, WebsiteSummary, SubmissionDetail } from '@/types/api'
-import { fetchRankings, fetchWebsiteDetail } from '@/api/rankings'
+import type {
+  RankingEntry,
+  ModelRankingEntry,
+  RankingsResponse,
+  RankingsFilters,
+  WebsiteSummary,
+  ModelSummary,
+  SubmissionDetail,
+} from '@/types/api'
+import { fetchRankings, fetchWebsiteDetail, fetchModelDetail } from '@/api/rankings'
 
 export const useRankingsStore = defineStore('rankings', () => {
-  // --- Rankings ---
+  // --- Mode ---
+  const rankingType = ref<'website' | 'model'>('website')
+
+  // --- Rankings (website mode) ---
   const rankings = ref<RankingEntry[]>([])
+
+  // --- Rankings (model mode) ---
+  const modelRankings = ref<ModelRankingEntry[]>([])
+
+  // --- Common ---
   const total = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -16,7 +32,10 @@ export const useRankingsStore = defineStore('rankings', () => {
     offset: 0,
   })
 
-  const hasMore = computed(() => rankings.value.length < total.value)
+  const hasMore = computed(() => {
+    const current = rankingType.value === 'website' ? rankings.value.length : modelRankings.value.length
+    return current < total.value
+  })
   const activeStyle = computed(() => filters.value.style || null)
 
   // --- Website Detail ---
@@ -25,7 +44,21 @@ export const useRankingsStore = defineStore('rankings', () => {
   const websiteLoading = ref(false)
   const websiteError = ref<string | null>(null)
 
+  // --- Model Detail ---
+  const modelDetail = ref<ModelSummary | null>(null)
+  const modelSubmissions = ref<SubmissionDetail[]>([])
+  const modelLoading = ref(false)
+  const modelError = ref<string | null>(null)
+
   // --- Actions ---
+  function setRankingType(type: 'website' | 'model') {
+    if (rankingType.value === type) return
+    rankingType.value = type
+    filters.value.offset = 0
+    total.value = 0
+    loadRankings(true)
+  }
+
   async function loadRankings(reset = false) {
     if (loading.value) return
 
@@ -37,11 +70,25 @@ export const useRankingsStore = defineStore('rankings', () => {
     }
 
     try {
-      const resp = await fetchRankings(filters.value)
-      if (reset) {
-        rankings.value = resp.rankings
+      const resp = await fetchRankings({
+        ...filters.value,
+        rankingType: rankingType.value,
+      })
+
+      if (rankingType.value === 'website') {
+        const data = resp as RankingsResponse<RankingEntry>
+        if (reset) {
+          rankings.value = data.rankings as RankingEntry[]
+        } else {
+          rankings.value = [...rankings.value, ...(data.rankings as RankingEntry[])]
+        }
       } else {
-        rankings.value = [...rankings.value, ...resp.rankings]
+        const data = resp as RankingsResponse<ModelRankingEntry>
+        if (reset) {
+          modelRankings.value = data.rankings as ModelRankingEntry[]
+        } else {
+          modelRankings.value = [...modelRankings.value, ...(data.rankings as ModelRankingEntry[])]
+        }
       }
       total.value = resp.total
     } catch (err) {
@@ -74,8 +121,27 @@ export const useRankingsStore = defineStore('rankings', () => {
     }
   }
 
+  async function loadModelDetail(id: string) {
+    modelLoading.value = true
+    modelError.value = null
+    modelDetail.value = null
+    modelSubmissions.value = []
+
+    try {
+      const resp = await fetchModelDetail(id)
+      modelDetail.value = resp.model
+      modelSubmissions.value = resp.submissions
+    } catch (err) {
+      modelError.value = err instanceof Error ? err.message : '加载模型详情失败'
+    } finally {
+      modelLoading.value = false
+    }
+  }
+
   return {
+    rankingType,
     rankings,
+    modelRankings,
     total,
     loading,
     error,
@@ -86,8 +152,14 @@ export const useRankingsStore = defineStore('rankings', () => {
     websiteSubmissions,
     websiteLoading,
     websiteError,
+    modelDetail,
+    modelSubmissions,
+    modelLoading,
+    modelError,
+    setRankingType,
     loadRankings,
     loadMore,
     loadWebsiteDetail,
+    loadModelDetail,
   }
 })

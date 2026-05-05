@@ -1,4 +1,4 @@
-name = "code-llm-test-api"
+name = "llm-test-api"
 main = "build/index.js"
 compatibility_date = "2026-05-03"
 
@@ -11,8 +11,8 @@ database_name = "rank-data"
 database_id = "5423ce15-ae23-4e82-94f5-2afdbe8e4280"
 
 [vars]
-FRONTEND_URL = "https://code-llm-test.pages.dev"
-TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+FRONTEND_URL = "https://llmtest.top"
+TURNSTILE_SITE_KEY = "0x4AAAAAADJQ-FMyj3al9bq5"
 CURRENT_TEST_SUITE = "v1"
 VERSION_WEIGHTS = "{\"v1\":1.0}"
 SUBMITTER_WEIGHT_OAUTH = "1.0"
