@@ -33,6 +33,7 @@ fn router(env: Env) -> Result<Router> {
         .route("/api/auth/github/login", get(handlers::github_login))
         .route("/api/auth/github/callback", post(handlers::github_callback))
         .route("/api/auth/anonymous", post(handlers::anonymous_auth))
+        .route("/api/llm-proxy", post(handlers::llm_proxy_handler))
         .route("/api/submissions", post(handlers::submit))
         .route("/api/rankings", get(handlers::rankings))
         .with_state(app_state))

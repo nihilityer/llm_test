@@ -25,6 +25,7 @@ export const useTestStore = defineStore('test', () => {
     endpoint: '',
     apiKey: '',
     model: '',
+    useProxy: false,
   })
 
   const domain = ref('')

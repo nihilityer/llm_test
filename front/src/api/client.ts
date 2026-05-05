@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 class ApiError extends Error {
   status: number
@@ -32,7 +32,7 @@ async function request<T>(
     }
   }
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,

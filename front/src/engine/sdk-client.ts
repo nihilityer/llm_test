@@ -1,4 +1,7 @@
 import type { ApiConfig, CallLLMOptions, LLMResponse, StreamCallbacks } from '@/types/scoring'
+import { API_BASE } from '@/api/client'
+
+const PROXY_ENDPOINT = `${API_BASE}/llm-proxy`
 
 const SYSTEM_PROMPT = `【系统提示】你正在进行一项 AI 模型能力评测考试。
 
@@ -13,6 +16,39 @@ const EVAL_TOOL = {
   name: 'submit_answer',
   description: '提交最终答案的唯一工具。必须调用此工具来提交你的判断结果，否则测试失败。',
 } as const
+
+function createProxyFetch(signal?: AbortSignal): typeof fetch {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url
+
+    const proxyResponse = await fetch(PROXY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        method: init?.method || 'GET',
+        headers: init?.headers ? Object.fromEntries(new Headers(init.headers).entries()) : {},
+        body: typeof init?.body === 'string' ? init.body : undefined,
+      }),
+      signal,
+    })
+
+    if (!proxyResponse.ok) {
+      const errorText = await proxyResponse.text().catch(() => '')
+      throw new Error(`LLM proxy error (${proxyResponse.status}): ${errorText}`)
+    }
+
+    return new Response(proxyResponse.body, {
+      status: proxyResponse.status,
+      statusText: proxyResponse.statusText,
+      headers: proxyResponse.headers,
+    })
+  }
+}
 
 export async function callLLMStream(
   apiConfig: ApiConfig,
@@ -42,6 +78,7 @@ async function callOpenAIStream(
     baseURL: config.endpoint.replace(/\/+$/, ''),
     apiKey: config.apiKey,
     dangerouslyAllowBrowser: true,
+    ...(config.useProxy ? { fetch: createProxyFetch(options.signal) } : {}),
   })
 
   const stream = await client.chat.completions.create(
@@ -122,6 +159,7 @@ async function callAnthropicStream(
     baseURL: config.endpoint.replace(/\/+$/, ''),
     apiKey: config.apiKey,
     dangerouslyAllowBrowser: true,
+    ...(config.useProxy ? { fetch: createProxyFetch(options.signal) } : {}),
   })
 
   const stream = await client.messages.create(
@@ -209,11 +247,139 @@ async function callAnthropicStream(
   }
 }
 
+async function callGeminiProxyStream(
+  config: ApiConfig,
+  options: CallLLMOptions,
+  callbacks: StreamCallbacks,
+): Promise<LLMResponse> {
+  const baseUrl = config.endpoint.replace(/\/+$/, '')
+  const model = config.model || 'gemini-2.0-flash'
+
+  const requestBody: Record<string, unknown> = {
+    contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
+    generationConfig: {
+      ...(options.maxTokens !== undefined ? { maxOutputTokens: options.maxTokens } : {}),
+      thinkingConfig: { thinkingBudget: 1024 },
+    },
+  }
+  if (options.systemPrompt) {
+    requestBody.systemInstruction = { parts: [{ text: options.systemPrompt }] }
+  }
+  if (options.parameters) {
+    requestBody.tools = [{
+      functionDeclarations: [{
+        name: EVAL_TOOL.name,
+        description: EVAL_TOOL.description,
+        parameters: options.parameters,
+      }],
+    }]
+    requestBody.toolConfig = {
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: [EVAL_TOOL.name],
+      },
+    }
+  }
+
+  const proxyResponse = await fetch(PROXY_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url: `${baseUrl}/models/${model}:streamGenerateContent?alt=sse`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': config.apiKey,
+      },
+      body: JSON.stringify(requestBody),
+    }),
+    signal: options.signal,
+  })
+
+  if (!proxyResponse.ok) {
+    const errorText = await proxyResponse.text().catch(() => '')
+    throw new Error(`Gemini proxy error (${proxyResponse.status}): ${errorText}`)
+  }
+
+  const reader = proxyResponse.body!.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let content = ''
+  let thinking = ''
+  let usage: LLMResponse['usage']
+  const toolCalls: Array<{ name: string; arguments: Record<string, unknown> }> = []
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed.startsWith('data: ')) continue
+
+      const jsonStr = trimmed.slice(6)
+      if (jsonStr === '[DONE]') continue
+
+      try {
+        const data = JSON.parse(jsonStr)
+        const candidates = data.candidates
+        if (!candidates?.[0]) continue
+
+        const parts = candidates[0].content?.parts
+        if (parts) {
+          for (const part of parts) {
+            if (part.text) {
+              if ((part as Record<string, unknown>).thought) {
+                thinking += part.text
+                callbacks.onThinking(part.text)
+              } else {
+                content += part.text
+                callbacks.onChunk(part.text)
+              }
+            }
+            const fc = (part as Record<string, unknown>).functionCall as { name: string; args: Record<string, unknown> } | undefined
+            if (fc) {
+              toolCalls.push({ name: fc.name, arguments: fc.args || {} })
+            }
+          }
+        }
+
+        // Capture usage metadata from the last chunk that has it
+        const um = (data as Record<string, unknown>).usageMetadata as Record<string, number> | undefined
+        if (um) {
+          usage = {
+            promptTokens: um.promptTokenCount ?? 0,
+            completionTokens: um.candidatesTokenCount ?? 0,
+            totalTokens: um.totalTokenCount ?? 0,
+            thinkingTokens: um.thoughtsTokenCount as number | undefined,
+          }
+        }
+      } catch {
+        // Skip malformed JSON lines
+      }
+    }
+  }
+
+  return {
+    content,
+    thinking: thinking || undefined,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    usage,
+  }
+}
+
 async function callGeminiStream(
   config: ApiConfig,
   options: CallLLMOptions,
   callbacks: StreamCallbacks,
 ): Promise<LLMResponse> {
+  if (config.useProxy) {
+    return callGeminiProxyStream(config, options, callbacks)
+  }
   const { GoogleGenerativeAI } = await import('@google/generative-ai')
 
   const client = new GoogleGenerativeAI(config.apiKey)

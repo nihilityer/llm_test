@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useTestStore } from '@/stores/test'
 import { API_STYLES } from '@/types/api'
 
@@ -87,12 +87,33 @@ const displayDomain = computed(() => {
         @input="testStore.setApiConfig({ model: ($event.target as HTMLInputElement).value })"
       />
     </div>
+
+    <!-- Proxy mode toggle -->
+    <div class="field">
+      <label class="field-label">代理模式</label>
+      <div class="proxy-toggle-row">
+        <label class="toggle">
+          <input
+            type="checkbox"
+            :checked="testStore.apiConfig.useProxy"
+            :disabled="testStore.runState === 'running'"
+            @change="testStore.setApiConfig({ useProxy: ($event.target as HTMLInputElement).checked })"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">
+          {{ testStore.apiConfig.useProxy ? '通过服务器代理请求' : '直接从浏览器请求' }}
+        </span>
+      </div>
+      <p v-if="testStore.apiConfig.useProxy" class="field-warning">
+        API 密钥将通过服务器转发。密钥不会被存储，但会在传输过程中对服务器可见。
+      </p>
+      <p v-else class="field-hint">
+        如果遇到跨域（CORS）错误，请启用代理模式。
+      </p>
+    </div>
   </div>
 </template>
-
-<script lang="ts">
-import { ref } from 'vue'
-</script>
 
 <style scoped>
 .field {
@@ -139,5 +160,65 @@ import { ref } from 'vue'
 
 .toggle-btn {
   flex-shrink: 0;
+}
+
+.proxy-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-border);
+  border-radius: 12px;
+  transition: background-color 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle input:checked + .toggle-slider {
+  background-color: var(--color-primary);
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.toggle input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 </style>

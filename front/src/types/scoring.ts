@@ -24,6 +24,7 @@ export interface ApiConfig {
   endpoint: string
   apiKey: string
   model: string
+  useProxy: boolean
 }
 
 export interface TestProgress {
