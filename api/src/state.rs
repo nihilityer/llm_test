@@ -17,18 +17,21 @@ impl AppState {
         }
     }
 
-    /// Get a secret or env var, reading from Secrets API on demand.
-    pub fn get_secret_or_var(&self, name: &str) -> Result<String> {
-        if let Ok(secret) = self.env.secret(name) {
-            return Ok(secret.to_string());
+    /// Get a secret from Secrets Store or fall back to a plain env var.
+    /// Secrets Store bindings (`[[secrets_store_secrets]]`) are accessed
+    /// via `env.secret_store()`; plain vars (`[vars]`) via `env.var()`.
+    pub async fn get_secret_or_var(&self, name: &str) -> Result<String> {
+        // Try secrets store first
+        if let Ok(store) = self.env.secret_store(name) {
+            if let Ok(Some(value)) = store.get().await {
+                return Ok(value);
+            }
         }
+        // Fall back to plain env var
         if let Ok(var) = self.env.var(name) {
             return Ok(var.to_string());
         }
-        Err(ApiError::internal(format!(
-            "Missing config: {}",
-            name
-        )))
+        Err(ApiError::internal(format!("Missing config: {}", name)))
     }
 
     pub fn get_weight_config(&self) -> WeightConfig {

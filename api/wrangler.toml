@@ -1,9 +1,14 @@
 name = "llm-test-api"
 main = "build/index.js"
 compatibility_date = "2026-05-03"
+workers_dev = false
 
 [build]
 command = "cargo install -q \"worker-build@^0.8\" && worker-build --release"
+
+[[routes]]
+pattern = "api.llmtest.top"
+custom_domain = true
 
 [[d1_databases]]
 binding = "RANK_DATA"
@@ -13,7 +18,29 @@ database_id = "5423ce15-ae23-4e82-94f5-2afdbe8e4280"
 [vars]
 FRONTEND_URL = "https://llmtest.top"
 TURNSTILE_SITE_KEY = "0x4AAAAAADJQ-FMyj3al9bq5"
+GITHUB_CLIENT_ID = "Ov23liiaOmaupTPIS5hq"
+GITHUB_REDIRECT_URI = "https://llmtest.top/auth/callback"
 CURRENT_TEST_SUITE = "v1"
 VERSION_WEIGHTS = "{\"v1\":1.0}"
 SUBMITTER_WEIGHT_OAUTH = "1.0"
 SUBMITTER_WEIGHT_ANONYMOUS = "0.7"
+
+[[secrets_store_secrets]]
+binding = "GITHUB_CLIENT_SECRET"
+store_id = "f6f8942afcac420dbc33ac69594d06dd"
+secret_name = "llm-test-github-client-secret"
+
+[[secrets_store_secrets]]
+binding = "JWT_SECRET"
+store_id = "f6f8942afcac420dbc33ac69594d06dd"
+secret_name = "jwt-secret"
+
+[[secrets_store_secrets]]
+binding = "TURNSTILE_SECRET_KEY"
+store_id = "f6f8942afcac420dbc33ac69594d06dd"
+secret_name = "turnsitile-secret-key"
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true

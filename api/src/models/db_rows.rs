@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserRow {
     pub id: String,
-    pub github_id: Option<i64>,
+    pub github_id: Option<i32>,
     pub login: String,
     pub avatar_url: Option<String>,
 }

@@ -1,4 +1,4 @@
-import { apiPost } from './client'
+import { apiPost, API_BASE } from './client'
 import type { AuthResponse } from '@/types/api'
 
 export async function exchangeGithubCode(code: string): Promise<AuthResponse> {
@@ -14,5 +14,5 @@ export async function getAnonymousToken(
 }
 
 export function getGithubLoginUrl(): string {
-  return '/api/auth/github/login'
+  return `${API_BASE}/auth/github/login`
 }

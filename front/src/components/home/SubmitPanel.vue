@@ -43,7 +43,7 @@ onMounted(() => {
       }
       if (win.turnstile) {
         turnstileId = win.turnstile.render(turnstileContainer.value, {
-          sitekey: '1x00000000000000000000AA',
+          sitekey: 'Ov23liiaOmaupTPIS5hq',
           callback: onTurnstileCallback,
           theme: 'light',
         })

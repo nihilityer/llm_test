@@ -119,7 +119,7 @@ pub async fn exchange_github_code(
     code: &str,
     client_id: &str,
     client_secret: &str,
-) -> Result<(i64, String, Option<String>)> {
+) -> Result<(i32, String, Option<String>)> {
     // Step 1: Exchange code for access token
     let token_url = "https://github.com/login/oauth/access_token";
     let token_body = serde_json::json!({
@@ -162,6 +162,7 @@ pub async fn exchange_github_code(
     let user_json: serde_json::Value = user_resp.json().await?;
     let github_id = user_json["id"]
         .as_i64()
+        .and_then(|id| i32::try_from(id).ok())
         .ok_or_else(|| ApiError::OAuth("Failed to get github id".into()))?;
     let login = user_json["login"]
         .as_str()

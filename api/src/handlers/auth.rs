@@ -20,7 +20,7 @@ pub async fn extract_auth(
         if let Ok(auth_str) = auth.to_str() {
             if auth_str.starts_with("Bearer ") {
                 let token = auth_str.trim_start_matches("Bearer ").trim();
-                let jwt_secret = state. get_secret_or_var("JWT_SECRET")?;
+                let jwt_secret = state.get_secret_or_var("JWT_SECRET").await?;
                 let claims = auth::verify_jwt(token, &jwt_secret)
                     .map_err(|_| ApiError::Unauthorized("Invalid JWT token".into()))?;
                 debug!("OAuth auth extracted: user={}", claims.sub);
@@ -32,7 +32,7 @@ pub async fn extract_auth(
     // Check X-Anonymous-Token
     if let Some(anon) = headers.get("X-Anonymous-Token") {
         if let Ok(token) = anon.to_str() {
-            let jwt_secret = state.get_secret_or_var("JWT_SECRET")?;
+            let jwt_secret = state.get_secret_or_var("JWT_SECRET").await?;
             let claims = auth::verify_jwt(token, &jwt_secret)
                 .map_err(|_| ApiError::Unauthorized("Invalid anonymous token".into()))?;
             if claims.submitter_type != "anonymous" {
@@ -55,20 +55,18 @@ pub async fn github_login(State(state): State<AppState>) -> Result<Response, Api
     info!("GitHub login flow initiated");
     let client_id = state
         .get_secret_or_var("GITHUB_CLIENT_ID")
+        .await
         .map_err(|_| ApiError::OAuth("GITHUB_CLIENT_ID not configured".into()))?;
 
     let redirect_uri = state
         .get_secret_or_var("GITHUB_REDIRECT_URI")
+        .await
         .ok()
         .or_else(|| {
-            state
-                .env
-                .var("FRONTEND_URL")
-                .ok()
-                .map(|url| {
-                    let s = url.to_string();
-                    format!("{}/auth/callback", s.trim_end_matches('/'))
-                })
+            state.env.var("FRONTEND_URL").ok().map(|url| {
+                let s = url.to_string();
+                format!("{}/auth/callback", s.trim_end_matches('/'))
+            })
         })
         .unwrap_or_else(|| "http://localhost:5173/auth/callback".to_string());
 
@@ -85,9 +83,9 @@ pub async fn github_callback(
     Json(body): Json<GithubCallbackRequest>,
 ) -> Result<Json<AuthResponse>, ApiError> {
     info!("GitHub OAuth callback received");
-    let client_id = state.get_secret_or_var("GITHUB_CLIENT_ID")?;
-    let client_secret = state.get_secret_or_var("GITHUB_CLIENT_SECRET")?;
-    let jwt_secret = state.get_secret_or_var("JWT_SECRET")?;
+    let client_id = state.get_secret_or_var("GITHUB_CLIENT_ID").await?;
+    let client_secret = state.get_secret_or_var("GITHUB_CLIENT_SECRET").await?;
+    let jwt_secret = state.get_secret_or_var("JWT_SECRET").await?;
 
     let (github_id, login, avatar_url) =
         auth::exchange_github_code(&body.code, &client_id, &client_secret).await?;
@@ -131,7 +129,7 @@ pub async fn anonymous_auth(
     Json(body): Json<AnonymousRequest>,
 ) -> Result<Json<AuthResponse>, ApiError> {
     info!("Anonymous auth attempt");
-    let turnstile_secret = state.get_secret_or_var("TURNSTILE_SECRET_KEY")?;
+    let turnstile_secret = state.get_secret_or_var("TURNSTILE_SECRET_KEY").await?;
 
     let verified = auth::verify_turnstile(&body.turnstile_token, &turnstile_secret).await?;
     if !verified {
@@ -153,7 +151,7 @@ pub async fn anonymous_auth(
         ));
     }
 
-    let jwt_secret = state.get_secret_or_var("JWT_SECRET")?;
+    let jwt_secret = state.get_secret_or_var("JWT_SECRET").await?;
     let token = auth::create_anonymous_jwt(&ip_hash, &jwt_secret)?;
 
     Ok(Json(AuthResponse { token, user: None }))

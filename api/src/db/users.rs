@@ -4,7 +4,7 @@ use crate::models::*;
 use std::collections::HashMap;
 use worker::*;
 
-pub async fn find_user_by_github_id(db: &D1Database, github_id: i64) -> Result<Option<UserRow>> {
+pub async fn find_user_by_github_id(db: &D1Database, github_id: i32) -> Result<Option<UserRow>> {
     db.prepare("SELECT id, github_id, login, avatar_url FROM users WHERE github_id = ?")
         .bind(&[github_id.into()])?
         .first::<UserRow>(None)
@@ -14,7 +14,7 @@ pub async fn find_user_by_github_id(db: &D1Database, github_id: i64) -> Result<O
 pub async fn create_user(
     db: &D1Database,
     id: &str,
-    github_id: i64,
+    github_id: i32,
     login: &str,
     avatar_url: &Option<String>,
 ) -> Result<()> {
