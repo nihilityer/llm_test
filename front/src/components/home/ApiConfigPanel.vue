@@ -77,15 +77,33 @@ const displayDomain = computed(() => {
     <!-- Model -->
     <div class="field">
       <label class="field-label" for="model">模型名称（可选）</label>
-      <input
-        id="model"
-        class="input"
-        type="text"
-        placeholder="gpt-4o / claude-sonnet-4 / gemini-2.0-flash"
-        :value="testStore.apiConfig.model"
-        :disabled="testStore.runState === 'running'"
-        @input="testStore.setApiConfig({ model: ($event.target as HTMLInputElement).value })"
-      />
+      <div class="model-input-row">
+        <input
+          id="model"
+          class="input"
+          type="text"
+          :list="testStore.modelList.length > 0 ? 'model-list' : undefined"
+          placeholder="gpt-4o / claude-sonnet-4 / gemini-2.0-flash"
+          :value="testStore.apiConfig.model"
+          :disabled="testStore.runState === 'running'"
+          @input="testStore.setApiConfig({ model: ($event.target as HTMLInputElement).value })"
+        />
+        <button
+          v-if="testStore.apiConfig.endpoint.trim() && testStore.apiConfig.apiKey.trim() && testStore.supportsModelList"
+          class="btn btn--ghost btn--sm"
+          :disabled="testStore.modelListLoading || testStore.runState === 'running'"
+          @click="testStore.fetchModelList()"
+        >
+          {{ testStore.modelListLoading ? '获取中...' : '获取模型列表' }}
+        </button>
+      </div>
+      <datalist v-if="testStore.modelList.length > 0" id="model-list">
+        <option v-for="id in testStore.modelList" :key="id" :value="id" />
+      </datalist>
+      <span v-if="testStore.modelList.length > 0" class="field-hint">
+        已加载 {{ testStore.modelList.length }} 个模型，可下拉选择
+      </span>
+      <span v-if="testStore.modelListError" class="field-error">{{ testStore.modelListError }}</span>
     </div>
 
     <!-- Proxy mode toggle -->
@@ -159,6 +177,19 @@ const displayDomain = computed(() => {
 }
 
 .toggle-btn {
+  flex-shrink: 0;
+}
+
+.model-input-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.model-input-row .input {
+  flex: 1;
+}
+
+.model-input-row .btn {
   flex-shrink: 0;
 }
 

@@ -15,6 +15,7 @@ import { calculateScores } from '@/engine/scoring'
 import { extractDomain, isLanIP } from '@/utils/domain'
 import { hashEndpoint } from '@/utils/crypto'
 import { submitResult } from '@/api/submissions'
+import { listModels } from '@/api/models'
 import { suiteV1 } from '@/test-suite/v1'
 import { useAuthStore } from './auth'
 
@@ -128,6 +129,13 @@ export const useTestStore = defineStore('test', () => {
 
   const isLanEndpoint = computed(() => isLanIP(domain.value))
 
+  // --- Model list ---
+  const modelList = ref<string[]>([])
+  const modelListLoading = ref(false)
+  const modelListError = ref<string | null>(null)
+
+  const supportsModelList = computed(() => apiConfig.value.style !== 'gemini')
+
   const averageResponseTime = computed(() => {
     const valid = results.value.filter((r) => r.response_time_ms > 0)
     if (valid.length === 0) return 0
@@ -138,6 +146,13 @@ export const useTestStore = defineStore('test', () => {
 
   // --- Actions ---
   function setApiConfig(patch: Partial<ApiConfig>) {
+    if (
+      ('endpoint' in patch && patch.endpoint !== apiConfig.value.endpoint) ||
+      ('style' in patch && patch.style !== apiConfig.value.style)
+    ) {
+      modelList.value = []
+      modelListError.value = null
+    }
     Object.assign(apiConfig.value, patch)
   }
 
@@ -269,6 +284,19 @@ export const useTestStore = defineStore('test', () => {
     submitError.value = null
   }
 
+  async function fetchModelList() {
+    modelListLoading.value = true
+    modelListError.value = null
+    try {
+      modelList.value = await listModels(apiConfig.value)
+    } catch (err) {
+      modelListError.value = err instanceof Error ? err.message : '获取模型列表失败'
+      modelList.value = []
+    } finally {
+      modelListLoading.value = false
+    }
+  }
+
   return {
     apiConfig,
     domain,
@@ -285,6 +313,10 @@ export const useTestStore = defineStore('test', () => {
     canStart,
     averageResponseTime,
     isLanEndpoint,
+    modelList,
+    modelListLoading,
+    modelListError,
+    supportsModelList,
     tabs,
     streamingOutputs,
     streamingThinking,
@@ -294,6 +326,7 @@ export const useTestStore = defineStore('test', () => {
     resetTest,
     submit,
     resetSubmit,
+    fetchModelList,
     navigateToTab,
     getTab,
   }
