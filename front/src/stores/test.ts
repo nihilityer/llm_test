@@ -12,7 +12,7 @@ import type {
 import type { SubmissionResponse, TestResultItem } from '@/types/api'
 import { runTestSuite } from '@/engine/runner'
 import { calculateScores } from '@/engine/scoring'
-import { extractDomain } from '@/utils/domain'
+import { extractDomain, isLanIP } from '@/utils/domain'
 import { hashEndpoint } from '@/utils/crypto'
 import { submitResult } from '@/api/submissions'
 import { suiteV1 } from '@/test-suite/v1'
@@ -125,6 +125,8 @@ export const useTestStore = defineStore('test', () => {
   })
 
   const canStart = computed(() => isConfigValid.value && runState.value === 'idle')
+
+  const isLanEndpoint = computed(() => isLanIP(domain.value))
 
   const averageResponseTime = computed(() => {
     const valid = results.value.filter((r) => r.response_time_ms > 0)
@@ -282,6 +284,7 @@ export const useTestStore = defineStore('test', () => {
     isConfigValid,
     canStart,
     averageResponseTime,
+    isLanEndpoint,
     tabs,
     streamingOutputs,
     streamingThinking,

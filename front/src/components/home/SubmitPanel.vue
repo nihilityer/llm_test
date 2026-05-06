@@ -82,8 +82,13 @@ onUnmounted(() => {
       >
     </div>
 
+    <!-- LAN endpoint notice -->
+    <div v-if="testStore.isLanEndpoint" class="alert alert--warning mt-4">
+      检测到端点属于局域网地址，暂不支持提交测试结果。如需提交，请使用公网可访问的端点。
+    </div>
+
     <!-- Already submitted warning -->
-    <div v-if="testStore.submitResultData" class="alert alert--success mt-4">
+    <div v-else-if="testStore.submitResultData" class="alert alert--success mt-4">
       提交成功！已关联到网站 "{{ testStore.submitResultData.website_name }}"
     </div>
 
