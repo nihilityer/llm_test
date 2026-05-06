@@ -14,9 +14,14 @@ const progressPercent = computed(() => {
 
 const expandedCase = ref<string | null>(null)
 const thinkingExpanded = ref<Record<string, boolean>>({})
+const streamExpanded = ref<Record<string, boolean>>({})
 
 function toggleThinking(caseId: string) {
   thinkingExpanded.value[caseId] = !thinkingExpanded.value[caseId]
+}
+
+function toggleStream(caseId: string) {
+  streamExpanded.value[caseId] = !streamExpanded.value[caseId]
 }
 
 // Auto-expand current running case, which implicitly collapses the previous one.
@@ -168,13 +173,20 @@ function toolCallAnswer(caseId: string): string | null {
             v-if="testStore.streamingOutputs[vc.testCase.id]"
             class="case-section case-section--stream"
           >
-            <div class="section-label section-label--stream">
+            <div
+              class="section-label section-label--stream"
+              @click="toggleStream(vc.testCase.id)"
+            >
+              <span>{{ streamExpanded[vc.testCase.id] ? '🔽' : '▶️' }}</span>
               <template v-if="vc.status === 'running'">
                 <span class="streaming-indicator" />模型输出中…
               </template>
               <template v-else>模型输出</template>
             </div>
-            <pre class="stream-text">{{ testStore.streamingOutputs[vc.testCase.id] }}</pre>
+            <pre
+              v-if="streamExpanded[vc.testCase.id]"
+              class="stream-text"
+            >{{ testStore.streamingOutputs[vc.testCase.id] }}</pre>
           </div>
 
           <!-- Result comparison (shown after completion) -->
@@ -343,7 +355,7 @@ function toolCallAnswer(caseId: string): string | null {
 }
 
 .case-section--stream {
-  background: #1e293b;
+  background: var(--color-gray-50);
   max-height: 400px;
   overflow-y: auto;
   padding: var(--space-3);
@@ -357,10 +369,16 @@ function toolCallAnswer(caseId: string): string | null {
 }
 
 .section-label--stream {
-  color: #94a3b8;
+  cursor: pointer;
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
+  user-select: none;
+}
+
+.section-label--stream:hover {
+  color: var(--color-text);
 }
 
 .streaming-indicator {
@@ -374,18 +392,18 @@ function toolCallAnswer(caseId: string): string | null {
 
 .section-pre {
   font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--color-text);
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.5;
+  line-height: 1.6;
   margin: 0;
 }
 
 .stream-text {
   font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: #e2e8f0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.6;
@@ -394,13 +412,13 @@ function toolCallAnswer(caseId: string): string | null {
 
 /* -- Thinking section -- */
 .case-section--thinking {
-  background: #2d3748;
-  padding: var(--space-2) var(--space-3);
+  background: var(--color-gray-50);
+  padding: var(--space-3);
 }
 
 .section-label--thinking {
   cursor: pointer;
-  color: #a0aec0;
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -410,20 +428,19 @@ function toolCallAnswer(caseId: string): string | null {
 }
 
 .section-label--thinking:hover {
-  color: #e2e8f0;
+  color: var(--color-text);
 }
 
 .thinking-text {
   font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: #a0aec0;
-  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.6;
   margin: var(--space-2) 0 0 0;
   padding-top: var(--space-2);
-  border-top: 1px solid #4a5568;
+  border-top: 1px solid var(--color-border);
 }
 
 /* -- Result -- */

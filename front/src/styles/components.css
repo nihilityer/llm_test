@@ -325,12 +325,13 @@
 /* ==================== Streaming Output ==================== */
 
 .streaming-terminal {
-  background: #1e293b;
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-3);
   font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: #e2e8f0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
