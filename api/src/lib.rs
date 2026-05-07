@@ -79,8 +79,6 @@ async fn fetch(
     env: Env,
     _ctx: Context,
 ) -> Result<axum::http::Response<axum::body::Body>> {
-    tracing::info!("Incoming request: {}", req.method().as_ref());
-
     // Capture Origin before req is consumed by the router
     let req_origin = req
         .headers()
