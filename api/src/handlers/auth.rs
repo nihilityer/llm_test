@@ -62,13 +62,7 @@ pub async fn github_login(State(state): State<AppState>) -> Result<Response, Api
         .get_secret_or_var("GITHUB_REDIRECT_URI")
         .await
         .ok()
-        .or_else(|| {
-            state.env.var("FRONTEND_URL").ok().map(|url| {
-                let s = url.to_string();
-                format!("{}/auth/callback", s.trim_end_matches('/'))
-            })
-        })
-        .unwrap_or_else(|| "http://localhost:5173/auth/callback".to_string());
+        .unwrap_or_else(|| "https://www.llmtest.top/auth/callback".to_string());
 
     let url = format!(
         "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&scope=read:user",

@@ -16,17 +16,33 @@ use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::prelude::*;
 use tracing_web::{performance_layer, MakeConsoleWriter};
 
-const ALLOWED_ORIGINS: &[&str] = &[
-    "https://llmtest.top",
-    "https://www.llmtest.top",
-    "http://localhost:5173",
-];
+const DEFAULT_CORS_ORIGINS: &str = "llmtest.top";
 
-fn get_allowed_origin(origin: &str) -> Option<&'static str> {
-    ALLOWED_ORIGINS
-        .iter()
-        .find(|&&o| o == origin)
-        .copied()
+fn get_allowed_origin<'a>(origin: &'a str, cors_origins: &str, dev_mode: bool) -> Option<&'a str> {
+    // Dev mode: allow any localhost port
+    if dev_mode && origin.starts_with("http://localhost:") {
+        return Some(origin);
+    }
+
+    // Reject non-HTTPS requests
+    let host_port = origin.strip_prefix("https://")?;
+
+    for allowed in cors_origins.split(',') {
+        let allowed = allowed.trim();
+        if allowed.is_empty() {
+            continue;
+        }
+        if host_port == allowed {
+            return Some(origin);
+        }
+        // Subdomain match: "sub.llmtest.top" strip_suffix "llmtest.top" → "sub."
+        if let Some(prefix) = host_port.strip_suffix(allowed) {
+            if prefix.ends_with('.') {
+                return Some(origin);
+            }
+        }
+    }
+    None
 }
 
 fn router(env: Env) -> Result<Router> {
@@ -73,11 +89,21 @@ async fn fetch(
         .unwrap_or("")
         .to_string();
 
+    let cors_origins = env
+        .var("CORS_ORIGINS")
+        .map(|v| v.to_string())
+        .unwrap_or_else(|_| DEFAULT_CORS_ORIGINS.to_string());
+
+    let dev_mode = env
+        .var("DEV_MODE")
+        .map(|v| v.to_string() == "true")
+        .unwrap_or(false);
+
     // CORS preflight
     if *req.method() == "OPTIONS" {
         tracing::debug!("CORS preflight, origin={}", req_origin);
 
-        if let Some(allowed) = get_allowed_origin(&req_origin) {
+        if let Some(allowed) = get_allowed_origin(&req_origin, &cors_origins, dev_mode) {
             let resp = axum::http::Response::builder()
                 .status(204)
                 .header("Access-Control-Allow-Origin", allowed)
@@ -102,7 +128,7 @@ async fn fetch(
     let mut resp = router(env)?.call(req).await?;
 
     // Add CORS header to actual responses
-    if let Some(allowed) = get_allowed_origin(&req_origin) {
+    if let Some(allowed) = get_allowed_origin(&req_origin, &cors_origins, dev_mode) {
         resp.headers_mut().insert(
             "Access-Control-Allow-Origin",
             axum::http::HeaderValue::from_str(allowed).unwrap(),

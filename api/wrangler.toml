@@ -16,7 +16,8 @@ database_name = "rank-data"
 database_id = "5423ce15-ae23-4e82-94f5-2afdbe8e4280"
 
 [vars]
-FRONTEND_URL = "https://llmtest.top"
+CORS_ORIGINS = "llmtest.top"
+DEV_MODE = "false"
 TURNSTILE_SITE_KEY = "0x4AAAAAADJQ-FMyj3al9bq5"
 GITHUB_CLIENT_ID = "Ov23liiaOmaupTPIS5hq"
 GITHUB_REDIRECT_URI = "https://llmtest.top/auth/callback"
