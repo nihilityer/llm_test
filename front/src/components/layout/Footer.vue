@@ -8,6 +8,14 @@ const year = new Date().getFullYear()
       <p class="footer-title">LLM跑分</p>
       <p class="footer-desc">AI能力简单测试与排行系统</p>
       <p class="footer-disclaimer">测试结果仅供参考，不构成对任何AI服务的最终评价</p>
+      <p class="footer-copy">
+        <a
+          class="footer-github"
+          href="https://github.com/nihilityer/llm_test"
+          target="_blank"
+          rel="noopener noreferrer"
+        >GitHub</a>
+      </p>
       <p class="footer-copy">&copy; {{ year }} LLM跑分</p>
     </div>
   </footer>
@@ -43,6 +51,17 @@ const year = new Date().getFullYear()
   font-size: var(--font-size-xs);
   color: var(--color-gray-400);
   margin-bottom: var(--space-4);
+}
+
+.footer-github {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-400);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-github:hover {
+  color: var(--color-text-secondary);
 }
 
 .footer-copy {
