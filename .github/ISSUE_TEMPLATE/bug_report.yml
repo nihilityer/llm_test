@@ -1,0 +1,69 @@
+name: "报告 Bug"
+description: 提交 Bug 帮助我们改进 LLM Test
+title: "[Bug] "
+labels: ["bug"]
+type: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你花时间提交 Bug 报告！
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: 描述 Bug
+      description: 清晰简洁地描述这个 Bug
+      placeholder: "当点击 xxx 时，页面出现 xxx 错误..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: 复现步骤
+      description: 一步步描述如何触发此 Bug
+      placeholder: |
+        1. 打开 '...'
+        2. 点击 '...'
+        3. 输入 '...'
+        4. 看到错误
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 预期行为
+      description: 清晰描述你期望发生什么
+      placeholder: "正常情况下应该显示 xxx..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图或日志（可选）
+      description: 如果有相关截图或浏览器控制台日志，请粘贴到这里
+
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器版本
+      description: 你使用的浏览器和版本
+      placeholder: "例如：Chrome 120、Firefox 121、Edge 120"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: 操作系统
+      description: 你使用的操作系统
+      placeholder: "例如：Windows 11、macOS 14、Ubuntu 22.04"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 额外信息
+      description: 任何有助于排查问题的信息
