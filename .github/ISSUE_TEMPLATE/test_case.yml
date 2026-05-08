@@ -2,7 +2,6 @@ name: "测试用例提交"
 description: 为 LLM Test 贡献新的测试用例 —— 社区驱动的核心
 title: "[测试用例] "
 labels: ["test-case"]
-type: feature
 body:
   - type: markdown
     attributes:
@@ -46,7 +45,6 @@ body:
       label: 提示词 (Prompt)
       description: 提交给 AI 模型的完整提示词，应包含明确的判断要求
       placeholder: "去离家五十米的洗车店洗车，应该开车去还是走路去？请做出判断。"
-      render: text
     validations:
       required: true
 
