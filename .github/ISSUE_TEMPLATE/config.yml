@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: LLM Test 官网
+    url: https://llmtest.top
+    about: 直接在线测试 AI 模型
+  - name: 贡献指南
+    url: https://github.com/nihilityer/llm_test/blob/main/CONTRIBUTING.md
+    about: 查看如何贡献测试用例和代码
