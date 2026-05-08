@@ -44,6 +44,7 @@ llm-test/
 ├── front/              # Vue 3 + TypeScript 前端（浏览器直连 AI API）
 ├── api/                # Rust Cloudflare Worker 后端（认证、提交、排行）
 ├── DESIGN.md           # 完整架构设计文档
+├── DEPLOY.md           # 自行部署指南
 ├── CONTRIBUTING.md     # 贡献指南
 └── LICENSE             # Apache 2.0
 ```
@@ -67,6 +68,12 @@ LLM Test 的核心生命力来自社区贡献的测试用例。我们欢迎：
 ## 反馈
 
 如果你在使用过程中遇到任何问题，或有功能建议、测试用例想法，欢迎到 [Issues](https://github.com/nihilityer/llm_test/issues) 提交反馈。
+
+## License
+
+## 自行部署
+
+如需将项目部署到你自己的 Cloudflare 账号下，请参考 **[DEPLOY.md](./DEPLOY.md)** 中的完整部署指南。
 
 ## License
 

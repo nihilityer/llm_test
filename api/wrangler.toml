@@ -1,3 +1,6 @@
+# =============================================================================
+# 本项目部署特有配置，其他部署者请参考 wrangler.toml.example 模板
+# =============================================================================
 name = "llm-test-api"
 main = "build/index.js"
 compatibility_date = "2026-05-03"
@@ -6,26 +9,39 @@ workers_dev = false
 [build]
 command = "cargo install -q \"worker-build@^0.8\" && worker-build --release"
 
+# ---- 路由：绑定到 Worker 的自定义域名 ----
 [[routes]]
 pattern = "api.llmtest.top"
 custom_domain = true
 
+# ---- D1 数据库 ----
 [[d1_databases]]
 binding = "RANK_DATA"
 database_name = "rank-data"
 database_id = "5423ce15-ae23-4e82-94f5-2afdbe8e4280"
 
+# ---- 公开环境变量 ----
 [vars]
+# 允许跨域访问的前端域名（多个域名用逗号分隔）
 CORS_ORIGINS = "llmtest.top"
+# 开发模式开关（true 时允许 localhost 跨域）
 DEV_MODE = "false"
+# Cloudflare Turnstile Site Key
 TURNSTILE_SITE_KEY = "0x4AAAAAADJQ-FMyj3al9bq5"
+# GitHub OAuth App Client ID
 GITHUB_CLIENT_ID = "Ov23liiaOmaupTPIS5hq"
+# GitHub OAuth 回调地址（必须与 GitHub OAuth App 中一致）
 GITHUB_REDIRECT_URI = "https://www.llmtest.top/auth/callback"
+# 当前测试套件版本
 CURRENT_TEST_SUITE = "v1"
+# 测试套件版本权重
 VERSION_WEIGHTS = "{\"v1\":1.0}"
+# OAuth 用户提交权重
 SUBMITTER_WEIGHT_OAUTH = "1.0"
+# 匿名用户提交权重
 SUBMITTER_WEIGHT_ANONYMOUS = "0.7"
 
+# ---- 敏感密钥（Cloudflare Secrets Store） ----
 [[secrets_store_secrets]]
 binding = "GITHUB_CLIENT_SECRET"
 store_id = "f6f8942afcac420dbc33ac69594d06dd"
@@ -41,6 +57,7 @@ binding = "TURNSTILE_SECRET_KEY"
 store_id = "f6f8942afcac420dbc33ac69594d06dd"
 secret_name = "turnsitile-secret-key"
 
+# ---- 可观测性 ----
 [observability]
 [observability.logs]
 enabled = true

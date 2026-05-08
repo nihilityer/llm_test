@@ -32,3 +32,5 @@ target
 node_modules
 .wrangler
 dist
+.env.local
+.env.*.local

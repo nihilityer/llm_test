@@ -1,0 +1,91 @@
+# =============================================================================
+# Cloudflare Worker 配置模板
+# 复制此文件为 wrangler.toml 并填入你的实际值
+# cp wrangler.toml.example wrangler.toml
+# =============================================================================
+
+# Worker 名称（自行命名，无特殊要求）
+name = "<YOUR_WORKER_NAME>"
+main = "build/index.js"
+compatibility_date = "2026-05-03"
+workers_dev = false
+
+[build]
+command = "cargo install -q \"worker-build@^0.8\" && worker-build --release"
+
+# ---- 路由配置 ----
+# 将此域名替换为你绑定到 Worker 的自定义域名
+[[routes]]
+pattern = "api.<YOUR_DOMAIN>"
+custom_domain = true
+
+# ---- D1 数据库 ----
+# 1. 创建 D1 数据库: wrangler d1 create <YOUR_DB_NAME>
+# 2. 将返回的 database_id 填入下方
+# 3. 初始化表: wrangler d1 execute <YOUR_DB_NAME> --file=api/schema.sql
+[[d1_databases]]
+binding = "RANK_DATA"
+database_name = "<YOUR_DB_NAME>"
+database_id = "<YOUR_D1_DATABASE_ID>"
+
+# ---- 环境变量 (公开配置) ----
+[vars]
+# 允许跨域访问的前端域名（多个域名用逗号分隔）
+# 支持子域名通配：如配置 "example.com"，则 "www.example.com" 也会被允许
+CORS_ORIGINS = "<YOUR_DOMAIN>"
+
+# 是否开启开发模式（允许 localhost 跨域访问）
+DEV_MODE = "false"
+
+# Cloudflare Turnstile Site Key
+# 在 https://dash.cloudflare.com/ -> Turnstile 创建站点后获取
+TURNSTILE_SITE_KEY = "<YOUR_TURNSTILE_SITE_KEY>"
+
+# GitHub OAuth App Client ID
+# 在 https://github.com/settings/developers 创建 OAuth App 后获取
+GITHUB_CLIENT_ID = "<YOUR_GITHUB_CLIENT_ID>"
+
+# GitHub OAuth 回调地址（必须与 GitHub OAuth App 中配置的回调 URL 完全一致）
+GITHUB_REDIRECT_URI = "https://<YOUR_DOMAIN>/auth/callback"
+
+# ---- 测试套件与评分权重 ----
+# 当前生效的测试套件版本
+CURRENT_TEST_SUITE = "v1"
+
+# 各版本测试套件的权重
+VERSION_WEIGHTS = "{\"v1\":1.0}"
+
+# OAuth 登录用户的提交权重
+SUBMITTER_WEIGHT_OAUTH = "1.0"
+
+# 匿名用户的提交权重（低于 OAuth 用户以鼓励登录）
+SUBMITTER_WEIGHT_ANONYMOUS = "0.7"
+
+# ---- Secrets Store 配置 ----
+# 敏感密钥应存储在 Cloudflare Secrets Store 中：
+#
+# 1. 创建 Secrets Store: wrangler secret-store create <YOUR_STORE_NAME>
+# 2. 添加密钥:
+#    wrangler secret-store secret put <YOUR_STORE_NAME> <SECRET_NAME>
+# 3. 填入 store_id 和 secret_name
+
+[[secrets_store_secrets]]
+binding = "GITHUB_CLIENT_SECRET"
+store_id = "<YOUR_SECRETS_STORE_ID>"
+secret_name = "<YOUR_GITHUB_CLIENT_SECRET_NAME>"
+
+[[secrets_store_secrets]]
+binding = "JWT_SECRET"
+store_id = "<YOUR_SECRETS_STORE_ID>"
+secret_name = "<YOUR_JWT_SECRET_NAME>"
+
+[[secrets_store_secrets]]
+binding = "TURNSTILE_SECRET_KEY"
+store_id = "<YOUR_SECRETS_STORE_ID>"
+secret_name = "<YOUR_TURNSTILE_SECRET_NAME>"
+
+# ---- 日志 ----
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true

@@ -61,8 +61,7 @@ pub async fn github_login(State(state): State<AppState>) -> Result<Response, Api
     let redirect_uri = state
         .get_secret_or_var("GITHUB_REDIRECT_URI")
         .await
-        .ok()
-        .unwrap_or_else(|| "https://www.llmtest.top/auth/callback".to_string());
+        .map_err(|_| ApiError::OAuth("GITHUB_REDIRECT_URI not configured".into()))?;
 
     let url = format!(
         "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&scope=read:user",
