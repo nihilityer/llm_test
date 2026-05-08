@@ -173,7 +173,7 @@ const showDetails = ref(false)
               {{ r.passed ? '通过' : '未通过' }}
             </span>
             <span class="detail-meta text-sm text-secondary">
-              {{ r.response_time_ms }}ms | {{ r.tokens_used }} tokens
+              {{ r.response_time_ms }}ms (首包 {{ r.first_token_time_ms }}ms) | {{ r.tokens_used }} tokens
             </span>
           </div>
           <pre v-if="r.output_preview" class="detail-preview">{{ r.output_preview }}</pre>

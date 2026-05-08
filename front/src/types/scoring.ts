@@ -36,6 +36,12 @@ export interface TestProgress {
 
 export type DimensionScores = Record<string, number>
 
+export type ScoringDimensionType =
+  | 'weighted_correctness'
+  | 'first_token_latency'
+  | 'token_efficiency'
+  | 'consistency'
+
 export interface LLMResponse {
   content: string
   thinking?: string

@@ -3,8 +3,12 @@ use axum::extract::{Json, State};
 use axum::http::{HeaderName, HeaderValue, StatusCode};
 use axum::response::Response;
 use bytes::Bytes;
+use futures::stream::Stream;
+use futures::TryStreamExt;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use worker::*;
 
 use crate::error::{ApiError, Result};
@@ -64,6 +68,21 @@ fn is_private_host(url: &str) -> bool {
         || lower.contains("://10.")
         || lower.contains("://172.16.")
         || lower.contains("://192.168.")
+}
+
+/// Wrapper around [`ByteStream`] that adds a [`Send`] impl.
+/// Safe because the WASM target is single-threaded.
+struct SendableByteStream(ByteStream);
+
+unsafe impl Send for SendableByteStream {}
+
+impl Stream for SendableByteStream {
+    type Item = <ByteStream as Stream>::Item;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let inner = unsafe { self.map_unchecked_mut(|s| &mut s.0) };
+        inner.poll_next(cx)
+    }
 }
 
 fn parse_method(method: &str) -> core::result::Result<Method, ApiError> {
@@ -135,9 +154,19 @@ pub async fn llm_proxy_handler(
         resp_headers.push((k, v));
     }
 
-    // Buffer response body (ByteStream is not Send so can't use Body::from_stream)
-    let body_bytes = worker_resp.bytes().await?;
-    let axum_body = Body::from(Bytes::from(body_bytes));
+    // Stream response body, fall back to buffered if upstream is not streaming
+    let axum_body = match worker_resp.stream() {
+        Ok(byte_stream) => {
+            let body_stream = SendableByteStream(byte_stream)
+                .map_ok(Bytes::from)
+                .map_err(|e| ApiError::internal(e.to_string()));
+            Body::from_stream(body_stream)
+        }
+        Err(_) => {
+            let body_bytes = worker_resp.bytes().await?;
+            Body::from(Bytes::from(body_bytes))
+        }
+    };
 
     let status =
         StatusCode::from_u16(upstream_status).unwrap_or(StatusCode::BAD_GATEWAY);

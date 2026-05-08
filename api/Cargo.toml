@@ -20,6 +20,7 @@ hmac = "0.13"
 base64 = "0.22"
 uuid = { version = "1", features = ["v4", "js"] }
 bytes = "1"
+futures = "0.3"
 time = { version = "0.3", features = ['wasm-bindgen'] }
 tracing-web = "0.1"
 tracing-subscriber = { version = "0.3", features = ['time', 'json'] }

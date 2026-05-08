@@ -39,6 +39,7 @@ export async function runTestSuite(
 
     try {
       const startTime = performance.now()
+      let firstTokenTime = 0
       const response = await callLLMStream(
         apiConfig,
         {
@@ -47,7 +48,12 @@ export async function runTestSuite(
           parameters: testCase.parameters,
         },
         {
-          onChunk: (text: string) => callbacks.onChunk(testCase.id, text),
+          onChunk: (text: string) => {
+            if (firstTokenTime === 0) {
+              firstTokenTime = Math.round(performance.now() - startTime)
+            }
+            callbacks.onChunk(testCase.id, text)
+          },
           onThinking: (text: string) => callbacks.onThinking(testCase.id, text),
         },
       )
@@ -61,6 +67,7 @@ export async function runTestSuite(
         testCase.id,
         evalResult,
         elapsed,
+        firstTokenTime,
         response.usage?.totalTokens ?? 0,
         truncate(previewText, 300),
       )
@@ -75,6 +82,7 @@ export async function runTestSuite(
           { passed: false, details: '用例超时 (60s)' },
           60000,
           0,
+          0,
           '',
         )
         results.push(resultItem)
@@ -84,6 +92,7 @@ export async function runTestSuite(
         const resultItem = createTestResultItem(
           testCase.id,
           { passed: false, details: `执行错误: ${message}` },
+          0,
           0,
           0,
           '',

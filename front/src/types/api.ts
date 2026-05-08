@@ -44,6 +44,7 @@ export interface TestResultItem {
   test_case_id: string
   passed: boolean
   response_time_ms: number
+  first_token_time_ms: number
   tokens_used: number
   output_preview: string
   details?: string
