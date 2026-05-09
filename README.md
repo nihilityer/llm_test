@@ -69,8 +69,6 @@ LLM Test 的核心生命力来自社区贡献的测试用例。我们欢迎：
 
 如果你在使用过程中遇到任何问题，或有功能建议、测试用例想法，欢迎到 [Issues](https://github.com/nihilityer/llm_test/issues) 提交反馈。
 
-## License
-
 ## 自行部署
 
 如需将项目部署到你自己的 Cloudflare 账号下，请参考 **[DEPLOY.md](./DEPLOY.md)** 中的完整部署指南。
